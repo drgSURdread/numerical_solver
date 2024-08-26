@@ -1,138 +1,87 @@
 import numpy as np
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
-from scipy import integrate, signal
 
-class du_solver:
-    def __init__(self, func) -> None:
+class Solver:
+    def __init__(self, system_DU):
         '''
-        @args:
-        func: система ДУ, которую неолбходимо решить;
-        nu: начальные условия;
-        t_0: начальный момент интегрирования
+        param
+        -----
+        system_DU: function_object
+                функция с системой ДУ (объявляет пользователь)
+        t: list
+                временной отрезок
+        y: list
+                хранит искомые функции
         '''
-        self.__system = func
+        self.system = system_DU
+        self.t = [] # время
+        self.y = [] # опред. ф-ии
 
-        # Results
-        self.y_sol = [] #функция
-        self.v_sol = [] #производная
-        self.t_sol = []
-    
-    
-    def __get_integrator(self, method: str):
-        methods = {'RK45': integrate.RK45}
-        assert method in methods.keys(), \
-                'Данный решатель не поддерживает метод {}'.format(method)   
-        return methods[method]
-
-    def solution(self, method: str, nu: list, 
-                 t_interval: tuple = [0.0, 100], 
-                 max_step: float = 0.05) -> (list, list):
+    def solve(self, nu, end_time, step, t_eval=None, args=()):
         '''
-        Решатель системы ДУ.
-        @args:
-        method: Метод численного решения (RK45, )
-        nu: Начальные условия;
-        t_interval: Время интегрирования;
-        max_step: Максимальный шаг интегрирования
+        Решатель
+        param
+        -----
+        nu: list
+                начальные условия
+        end_time: float
+                время окончания интегрирования
+        step: float
+                шаг интегрирования
+        t_eval: list
+                массив временных точек для индивидуального решения
+        args: tuple
+                внешние параметры для передачи в систему ДУ
         '''
-        integrator = self.__get_integrator(method)(
-                            self.__system, 
-                            t_interval[0],
-                            nu,
-                            t_bound=t_interval[1],
-                            max_step=max_step)
-        while not(integrator.status == 'finished'):
-            integrator.step()
-            self.t_sol.append(integrator.t)
-            self.y_sol.append(integrator.y[0])
-            self.v_sol.append(integrator.y[1])
-        return (self.t_sol, self.y_sol, self.v_sol)
-    
-    def __get_range(self, is_x: bool = False, is_y: bool = False):
-        if is_x:
-            return [self.t_sol[0], self.t_sol[len(self.t_sol) - 1]]
+        p1, p2 = args
+        if t_eval is None:
+            self.t = np.linspace(0, end_time, int(end_time / step))
         else:
-            return [min(self.y_sol), max(self.y_sol)]
+            self.t = t_eval
+        self.y = odeint(self.system, nu, self.t, args=(p1, p2))
 
-    def plot_solution(self, x_range: list = None,
-                            y_range: list = None,
-                            color: str = 'b'):
+    def plot_solution(self,
+                      func_numb=0,
+                      fig_size=(12,8),
+                      x_scale=None,
+                      y_scale=None,
+                      labels_name=None,
+                      title=None):
         '''
-        Рисует график численного решения ДУ
-        @args:
-        x_range: Диапазон вывода графика по оси абсцисс, по умолчанию программа сама выбирает масштаб
-        y_range: Диапазон вывода графика по оси ординат, по умолчанию программа сама выбирает масштаб
-        color: Цвет графика
+        Графически отображает решение
+        params
+        ------
+        func_numb: int
+                номер найденной функции в self.y
+        fig_size: tuple
+                размер области графика - (length, width)
+        x_scale: tuple
+                масштаб по X - (x_min, x_max)
+        y_scale: tuple
+                масштаб по Y - (y_min, y_max)
+        labels_name: tuple
+                подписи по осям - (X, Y)
+        title: str
+                название графика
         '''
-        if x_range is None:
-            x_range = self.__get_range(is_x=True)
-        if y_range is None:
-            y_range = self.__get_range(is_y=True)
-        plt.rcParams["figure.figsize"] = (10,6)
-        plt.plot(self.t_sol, self.y_sol, color)
-        plt.xlim(x_range)
-        plt.ylim(y_range)
-        plt.xlabel('t')
-        plt.ylabel('y')
-        plt.grid(True)
-        #plt.legend(['Численное решение'])
-        #plt.title('Решение ДУ методом Рунге-Кутты 4-го порядка')
-        plt.show()
+        fig, ax = plt.subplots(figsize=fig_size, layout='tight')
+        
+        ax.grid(which='major', color='#DDDDDD', linewidth=1.5)
+        ax.grid(which='minor', color='#EEEEEE', linestyle=':', linewidth=1)
+        ax.minorticks_on()
+        ax.grid(True)
+        
+        ax.plot(self.t, self.y[:, func_numb], color='blue', linewidth=3)
+        if not(x_scale is None):
+            ax.set_xlim(x_scale[0], x_scale[1])
+        if not(y_scale is None):
+            ax.set_ylim(y_scale[0], y_scale[1])
 
-    def lowpass_filter(self, cutoff_freq: float, poles: int = 5) -> list:
-        '''
-        Фильтр решения на низкие частоты
-        @args:
-        '''
-        filter_ = signal.butter(poles, cutoff_freq, 'lowpass', output='sos')
-        filtered_data = signal.sosfiltfilt(filter_, list(zip(self.t_sol, self.y_sol)))
-        return filtered_data
-    
-    #TODO: Добавить постройку фазового портрета для системы ДУ
-    def plot_phase_portrait(self, x_range: list = [-5, 5],
-                            y_range: list = [-5, 5],
-                            step_x: int = 10,
-                            step_y: int = 10,
-                            t_final: float = 1500,
-                            color: str = 'r'):
-        '''
-        Рисует фазовый портрет решения ДУ
-        @args:
-        x_range: Диапазон вывода графика по оси абсцисс, по умолчанию программа сама выбирает масштаб
-        y_range: Диапазон вывода графика по оси ординат, по умолчанию программа сама выбирает масштаб
-        color: Цвет графика;
-        step_x: Шаг начального условия функции;
-        step_y: Шаг начального условия производной;
-        t_final: Время окончания интегрирования
-        '''
-        #TODO: Поправить, проблемы с перебором значений
-        plt.rcParams["figure.figsize"] = (10,6)
-        plt.grid(True)
-        for x0 in np.linspace(x_range[0], x_range[1], step_x):
-            for y0 in np.linspace(y_range[0], y_range[1], step_y):
-                y_0 = [x0, y0]
-                t_0 = 0
-                t_final = 1500
-                t, y, v = self.solution(method='RK45', 
-                                    nu=y_0,
-                                    t_interval=[t_0, t_final],
-                                    max_step=0.5)
-                plt.plot(t, v, color)
-        plt.show()
+        if not(labels_name is None):
+            plt.xlabel(labels_name[0], fontsize=15, fontweight="bold")
+            plt.ylabel(labels_name[1], fontsize=15, fontweight="bold")
+        if not(title is None):
+            plt.title(title, fontsize=15, fontweight="bold")
 
 
-
-    
-def function(t, y):
-    '''
-    Функция, которую должен написать сам пользователь. 
-    Система уравнений или просто ДУ, которое необходимо решить
-    '''
-    return [
-        y[1],
-        -3/2*0.00101**2/285.14*(363.86-233.96)*np.sin(2*(y[0] - 0.004))/np.cos(2*0.004)
-        ]
-
-
-obj = du_solver(function)
-obj.plot_phase_portrait(x_range=[-np.pi, np.pi], y_range=[-0.001, 0.001])
