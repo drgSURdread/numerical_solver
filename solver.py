@@ -3,37 +3,36 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 class Solver:
-    def __init__(self, system_DU):
-        '''
-        param
-        -----
-        system_DU: function_object
-                функция с системой ДУ (объявляет пользователь)
-        t: list
-                временной отрезок
-        y: list
-                хранит искомые функции
-        '''
+    def __init__(self, system_DU: function) -> object:
+        """
+        Конструктор для класса Solver
+
+        Args:
+            system_DU (function): Функция, представляющая систему ДУ,
+            решение которой необходимо получить
+        Returns:
+            object: объект класса Solver
+        """
         self.system = system_DU
         self.t = [] # время
-        self.y = [] # опред. ф-ии
+        self.y = [] # найденные функции
 
-    def solve(self, nu, end_time, step, t_eval=None, args=()):
-        '''
-        Решатель
-        param
-        -----
-        nu: list
-                начальные условия
-        end_time: float
-                время окончания интегрирования
-        step: float
-                шаг интегрирования
-        t_eval: list
-                массив временных точек для индивидуального решения
-        args: tuple
-                внешние параметры для передачи в систему ДУ
-        '''
+    def solve(self, nu: tuple, end_time: float, step: float, t_eval:list = None, args=()) -> None:
+        """
+        Функция решателя, получающая решение для `self.system`
+        Данный решатель получает решение с постоянным шагом, если не
+        переданы временные точки интегрирования в параметр t_eval
+
+        Args:
+            nu (tuple): набор начальных условий
+            end_time (float): время окончания интегрирования
+            step (float): шаг решателя
+            t_eval (list, optional): Заданные пользователем временные 
+            точки интегрирования. Defaults to None.
+        
+        Returns:
+            None
+        """
         p1, p2 = args
         if t_eval is None:
             self.t = np.linspace(0, end_time, int(end_time / step))
@@ -47,24 +46,18 @@ class Solver:
                       x_scale=None,
                       y_scale=None,
                       labels_name=None,
-                      title=None):
-        '''
-        Графически отображает решение
-        params
-        ------
-        func_numb: int
-                номер найденной функции в self.y
-        fig_size: tuple
-                размер области графика - (length, width)
-        x_scale: tuple
-                масштаб по X - (x_min, x_max)
-        y_scale: tuple
-                масштаб по Y - (y_min, y_max)
-        labels_name: tuple
-                подписи по осям - (X, Y)
-        title: str
-                название графика
-        '''
+                      title=None) -> None:
+        """
+        Функция визуализация решения
+
+        Args:
+            func_numb (int, optional): номер найденной функции в self.y. Defaults to 0.
+            fig_size (tuple, optional): размер области графика - (length, width). Defaults to (12,8).
+            x_scale (_type_, optional): масштаб по X - (x_min, x_max). Defaults to None.
+            y_scale (_type_, optional):  масштаб по Y - (y_min, y_max). Defaults to None.
+            labels_name (_type_, optional): подписи по осям - (X, Y). Defaults to None.
+            title (_type_, optional): название графика. Defaults to None.
+        """
         fig, ax = plt.subplots(figsize=fig_size, layout='tight')
         
         ax.grid(which='major', color='#DDDDDD', linewidth=1.5)
