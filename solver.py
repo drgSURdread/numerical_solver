@@ -39,6 +39,35 @@ class Solver:
             self.t = t_eval
         self.y = odeint(self.system, nu, self.t)
 
+    def eiler(self, end_time: float, nu: tuple, acc: float) -> tuple:
+        """
+        Численное решение ДУ методом Эйлера
+
+        Args:
+            end_time (float): время окончания интегрирования
+            nu (tuple): набор начальных условий
+            acc (float): Начальный шаг интегрирования
+
+        Returns:
+            tuple: Набор временных точек и решения
+        """
+        step = acc**(1/2)
+        t_pnt, sol_y, sol_z = [0.0], [nu[0]], [nu[1]]
+        while t_pnt[-1] < end_time:    
+            next_y = sol_y[-1] + step * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[0]
+            next_z = sol_z[-1] + step * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[1]
+            next_y2n = sol_y[-1] + step / 2 * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[0]
+            next_z2n = sol_z[-1] + step / 2 * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[1]
+            if abs(next_y2n - next_y) < acc:
+                t_pnt.append(t_pnt[-1] + step)
+                sol_y.append(next_y)
+                sol_z.append(next_z)
+                step = 2 * step
+            else:
+                step = step / 2
+                continue
+        return t_pnt, sol_y, sol_z
+    
     def plot_solution(self,
                       func_numb=0,
                       fig_size=(12,8),
