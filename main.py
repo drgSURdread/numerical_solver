@@ -30,3 +30,24 @@ sol.plot_solution(
     func_numb=1,
     labels_name=("Время, c", "Значение функции")
 )
+
+# %% 
+# Решение уравнения `equation` методом Эйлера
+# %%
+sol.eiler(
+    end_time=end_time,
+    nu=nu,
+    acc=1e-5,
+)
+# %%
+# Значение функции
+sol.plot_solution(
+    func_numb=0,
+    labels_name=("Время, c", "Значение функции")
+)
+# %%
+# Значение функции
+sol.plot_solution(
+    func_numb=1,
+    labels_name=("Время, c", "Значение функции")
+)

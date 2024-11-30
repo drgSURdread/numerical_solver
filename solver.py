@@ -38,8 +38,9 @@ class Solver:
         else:
             self.t = t_eval
         self.y = odeint(self.system, nu, self.t)
+        self.y = np.transpose(self.y)
 
-    def eiler(self, end_time: float, nu: tuple, acc: float) -> tuple:
+    def eiler(self, end_time: float, nu: tuple, acc: float) -> None:
         """
         Численное решение ДУ методом Эйлера
 
@@ -52,21 +53,24 @@ class Solver:
             tuple: Набор временных точек и решения
         """
         step = acc**(1/2)
-        t_pnt, sol_y, sol_z = [0.0], [nu[0]], [nu[1]]
-        while t_pnt[-1] < end_time:    
-            next_y = sol_y[-1] + step * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[0]
-            next_z = sol_z[-1] + step * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[1]
-            next_y2n = sol_y[-1] + step / 2 * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[0]
-            next_z2n = sol_z[-1] + step / 2 * self.system([sol_y[-1], sol_z[-1]], t_pnt[-1])[1]
+        self.t = [0.0]
+        self.y = [[nu[0]], [nu[1]]]
+        # t_pnt, sol_y, sol_z = [0.0], [nu[0]], [nu[1]]
+        while self.t[-1] < end_time:    
+            next_y = self.y[0][-1] + step * self.system([self.y[0][-1], self.y[1][-1]], self.t[-1])[0]
+            next_z = self.y[1][-1] + step * self.system([self.y[0][-1], self.y[1][-1]], self.t[-1])[1]
+            next_y2n = self.y[0][-1] + step / 2 * self.system([self.y[0][-1], self.y[1][-1]], self.t[-1])[0]
+            next_z2n = self.y[1][-1] + step / 2 * self.system([self.y[0][-1], self.y[1][-1]], self.t[-1])[1]
             if abs(next_y2n - next_y) < acc:
-                t_pnt.append(t_pnt[-1] + step)
-                sol_y.append(next_y)
-                sol_z.append(next_z)
+                self.t.append(self.t[-1] + step)
+                self.y[0].append(next_y)
+                self.y[1].append(next_z)
                 step = 2 * step
             else:
                 step = step / 2
                 continue
-        return t_pnt, sol_y, sol_z
+        self.y = np.array(self.y)
+        # return t_pnt, sol_y, sol_z
     
     def plot_solution(self,
                       func_numb=0,
@@ -93,7 +97,7 @@ class Solver:
         ax.minorticks_on()
         ax.grid(True)
         
-        ax.plot(self.t, self.y[:, func_numb], color='blue', linewidth=3)
+        ax.plot(self.t, self.y[func_numb, :], color='blue', linewidth=3)
         if not(x_scale is None):
             ax.set_xlim(x_scale[0], x_scale[1])
         if not(y_scale is None):
