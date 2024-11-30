@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 class Solver:
-    def __init__(self, system_DU: function) -> object:
+    def __init__(self, system_DU: object) -> object:
         """
         Конструктор для класса Solver
 
@@ -17,7 +17,7 @@ class Solver:
         self.t = [] # время
         self.y = [] # найденные функции
 
-    def solve(self, nu: tuple, end_time: float, step: float, t_eval:list = None, args=()) -> None:
+    def solve(self, nu: tuple, end_time: float, step: float, t_eval:list = None) -> None:
         """
         Функция решателя, получающая решение для `self.system`
         Данный решатель получает решение с постоянным шагом, если не
@@ -33,12 +33,11 @@ class Solver:
         Returns:
             None
         """
-        p1, p2 = args
         if t_eval is None:
             self.t = np.linspace(0, end_time, int(end_time / step))
         else:
             self.t = t_eval
-        self.y = odeint(self.system, nu, self.t, args=(p1, p2))
+        self.y = odeint(self.system, nu, self.t)
 
     def plot_solution(self,
                       func_numb=0,
